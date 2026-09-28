@@ -269,6 +269,7 @@ export function Strip({
             background={background}
             frameUrl={deviceFrameUrl}
             geom={geom}
+            copyScale={tileSpec.copyScale}
             fontFamily={fontFamily}
             headline={copy[scene.id]?.headline?.[locale] ?? scene.headline[locale] ?? ""}
             subhead={copy[scene.id]?.subhead?.[locale] ?? scene.subhead?.[locale]}
@@ -739,6 +740,7 @@ function ScreenshotScene({
   background,
   frameUrl,
   geom,
+  copyScale,
   fontFamily,
   headline,
   subhead,
@@ -761,6 +763,7 @@ function ScreenshotScene({
   frameUrl: string;
   /** The bezel art's geometry; the iOS bundled art's when the device brings none. */
   geom: FrameGeometry | undefined;
+  copyScale: number;
   fontFamily: string;
   headline: string;
   subhead: string | undefined;
@@ -773,10 +776,11 @@ function ScreenshotScene({
   locale: string;
   onEdit?: (field: "headline" | "subhead", text: string) => void;
 }) {
-  const c = compose(spec, tile, theme, { screenOnly, geom: geom ?? frame });
+  const c = compose(spec, tile, theme, { screenOnly, geom: geom ?? frame, copyScale });
   const { w, h } = cq(tile);
-  // Wider-than-reference tiles compose at a narrower design width; type follows it.
-  const typeScale = c.designWidth / tile.width;
+  // Wider-than-reference tiles compose at a narrower design width; type
+  // follows it, times the device's copy scale.
+  const typeScale = (c.copy?.typeWidth ?? c.designWidth) / tile.width;
   const editable = onEdit ? editableProps : () => ({});
   const copy = c.copy;
   return (

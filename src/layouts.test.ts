@@ -103,6 +103,26 @@ describe("compose", () => {
     expect(centred.copy!.box.left).toBeGreaterThan(0);
   });
 
+  test("on a wide tile the copy wraps across the tile, keeping its side padding", () => {
+    const ipad = { width: 2064, height: 2752 };
+    for (const key of ["hero", "offset"] as const) {
+      const c = compose(LAYOUTS[key], ipad, theme);
+      const padX = c.designWidth * 0.09;
+      expect(c.copy!.box.left).toBeCloseTo(padX);
+      expect(c.copy!.box.left + c.copy!.box.width).toBeCloseTo(ipad.width - padX);
+    }
+  });
+
+  test("copyScale sizes the copy type and nothing else", () => {
+    const ipad = { width: 2064, height: 2752 };
+    const base = compose(LAYOUTS.hero, ipad, theme);
+    const scaled = compose(LAYOUTS.hero, ipad, theme, { copyScale: 1.3 });
+    expect(base.copy!.typeWidth).toBeCloseTo(base.designWidth);
+    expect(scaled.copy!.typeWidth).toBeCloseTo(base.designWidth * 1.3);
+    expect(scaled.copy!.box).toEqual(base.copy!.box);
+    expect(scaled.devices).toEqual(base.devices);
+  });
+
   test("on a wide tile the device clears a bottom copy band", () => {
     const wide = { width: 1080, height: 1920 };
     const c = compose(LAYOUTS["copy-below"], wide, theme);

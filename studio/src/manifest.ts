@@ -41,6 +41,8 @@ export type DeviceEntry = {
   label: string;
   platform: "ios" | "android";
   type: DeviceType;
+  /** Copy size relative to the reference column's type; see DeviceSpec in src/specs.ts. */
+  copyScale: number;
   simulatorName: string | null;
   screenshot: { width: number; height: number };
   preview: { width: number; height: number } | null;
@@ -138,8 +140,10 @@ export async function loadManifest(): Promise<StoreManifest> {
       "goldie manifest",
     );
   }
-  // Manifests written before the device type existed: the key tells iPads apart.
+  // Manifests written before the device type and copy scale existed: the key
+  // tells iPads apart, and the copy keeps the reference size.
   for (const d of manifest.devices) {
+    d.copyScale ??= 1;
     d.type ??= d.platform === "android" ? "android" : d.key.startsWith("ipad") ? "ipad" : "iphone";
   }
 

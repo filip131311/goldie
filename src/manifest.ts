@@ -61,6 +61,7 @@ export type StoreManifest = {
     label: string;
     platform: "ios" | "android";
     type: DeviceType;
+    copyScale: number;
     simulatorName: string | null;
     screenshot: { width: number; height: number };
     preview: { width: number; height: number } | null;
@@ -269,6 +270,7 @@ export async function writeManifest(cfg: LoadedConfig): Promise<string> {
       label: DEVICES[key].label,
       platform: DEVICES[key].platform,
       type: DEVICES[key].type,
+      copyScale: DEVICES[key].copyScale ?? 1,
       simulatorName: DEVICES[key].simulatorName ?? null,
       screenshot: DEVICES[key].screenshot,
       preview: DEVICES[key].preview,

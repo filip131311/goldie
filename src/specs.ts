@@ -52,6 +52,12 @@ export type DeviceSpec = {
   preview: { width: number; height: number } | null;
   /** Render bare screens with the drop shadow instead of a bezel. */
   screenOnly?: true;
+  /**
+   * Headline and subhead size relative to the reference column's type. A tile
+   * much wider than the 6.9" reference composes in a narrow column, whose type
+   * reads small across the full tile. Default 1.
+   */
+  copyScale?: number;
 };
 
 export const DEVICES: Record<DeviceKey, DeviceSpec> = {
@@ -69,6 +75,7 @@ export const DEVICES: Record<DeviceKey, DeviceSpec> = {
     platform: "ios",
     type: "ipad",
     simulatorName: "iPad Pro 13-inch (M4)",
+    copyScale: 1.3,
     native: { width: 2064, height: 2752 },
     screenshot: { width: 2064, height: 2752 },
     preview: { width: 1200, height: 1600 },
