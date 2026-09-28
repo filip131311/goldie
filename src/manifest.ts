@@ -30,7 +30,7 @@ import { CUSTOM_FONT_FALLBACK, FONTS, fontFilePath } from "./fonts.ts";
 import type { FrameGeometry } from "./frame.ts";
 import { imageSize } from "./image.ts";
 import { LAYOUTS, TEMPLATES } from "./layouts.ts";
-import { DEVICES, type DeviceKey } from "./specs.ts";
+import { DEVICES, type DeviceKey, type DeviceType } from "./specs.ts";
 
 /**
  * `out/web/` - the studio's static root. It holds the manifest, the
@@ -60,6 +60,7 @@ export type StoreManifest = {
     key: DeviceKey;
     label: string;
     platform: "ios" | "android";
+    type: DeviceType;
     simulatorName: string | null;
     screenshot: { width: number; height: number };
     preview: { width: number; height: number } | null;
@@ -267,6 +268,7 @@ export async function writeManifest(cfg: LoadedConfig): Promise<string> {
       key,
       label: DEVICES[key].label,
       platform: DEVICES[key].platform,
+      type: DEVICES[key].type,
       simulatorName: DEVICES[key].simulatorName ?? null,
       screenshot: DEVICES[key].screenshot,
       preview: DEVICES[key].preview,

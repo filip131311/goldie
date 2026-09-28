@@ -33,10 +33,14 @@ export type FrameGeometry = {
   screenRadius: number;
 };
 
+/** Mirrors DeviceType in src/specs.ts: the sidebar's device-type tabs. */
+export type DeviceType = "iphone" | "ipad" | "android";
+
 export type DeviceEntry = {
   key: string;
   label: string;
   platform: "ios" | "android";
+  type: DeviceType;
   simulatorName: string | null;
   screenshot: { width: number; height: number };
   preview: { width: number; height: number } | null;
@@ -133,6 +137,10 @@ export async function loadManifest(): Promise<StoreManifest> {
       "out/store.json predates browser-side composition. Regenerate it.",
       "goldie manifest",
     );
+  }
+  // Manifests written before the device type existed: the key tells iPads apart.
+  for (const d of manifest.devices) {
+    d.type ??= d.platform === "android" ? "android" : d.key.startsWith("ipad") ? "ipad" : "iphone";
   }
 
   // Raw captures keep their names across a re-capture, so the manifest's

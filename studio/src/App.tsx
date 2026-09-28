@@ -1,4 +1,10 @@
-import { CameraIcon, type LucideIcon, SmartphoneIcon, TriangleAlertIcon } from "lucide-react";
+import {
+  CameraIcon,
+  type LucideIcon,
+  SmartphoneIcon,
+  TabletIcon,
+  TriangleAlertIcon,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { EmptyState } from "./components/EmptyState";
 import { Sidebar } from "./components/Sidebar";
@@ -8,6 +14,7 @@ import {
   type BundledFont,
   type Design,
   type DeviceEntry,
+  type DeviceType,
   loadDesign,
   loadManifest,
   ManifestError,
@@ -20,22 +27,28 @@ import {
 /** Sentinel for the config's own layout sequence, which the studio can show but not edit. */
 export const CUSTOM_TEMPLATE = "__custom__";
 
-export type Platform = "ios" | "android";
+const DEVICE_TYPES: DeviceType[] = ["iphone", "ipad", "android"];
 
 /**
- * Shown when a store's tab is selected but its device is not in the config.
- * The chip holds the ask to hand a coding agent, which knows the config
- * changes and capture steps from the goldie skill.
+ * Shown when a device-type tab is selected but its device is not in the
+ * config. The chip holds the ask to hand a coding agent, which knows the
+ * config changes and capture steps from the goldie skill.
  */
-const ENABLE_PLATFORM: Record<
-  Platform,
+const ENABLE_DEVICE_TYPE: Record<
+  DeviceType,
   { icon: LucideIcon; title: string; body: string; command: string }
 > = {
-  ios: {
+  iphone: {
     icon: SmartphoneIcon,
     title: "No App Store screenshots yet",
     body: "Ask your coding agent to set them up:",
     command: "create App Store screenshots using goldie",
+  },
+  ipad: {
+    icon: TabletIcon,
+    title: "No iPad screenshots yet",
+    body: 'Add "ipad-13" to devices in goldie.config.ts, or ask your coding agent:',
+    command: "add iPad screenshots using goldie",
   },
   android: {
     icon: SmartphoneIcon,
@@ -82,7 +95,7 @@ export function App() {
  * layout and screen-only mode, per-scene layout overrides, copy edited in the
  * lightbox, the order tiles were dragged into)
  * are written to goldie.design.json next to the config, debounced, so the
- * CLI picks them up too. The view choices (platform, device, locale, dark) only matter
+ * CLI picks them up too. The view choices (device type, device, locale, dark) only matter
  * here and live in localStorage under the app's name, as does the strip view. Either falls back to
  * the config when a stored value no longer applies (a device or frame
  * variant removed from the config, for instance).
@@ -90,25 +103,25 @@ export function App() {
 function Loaded({ manifest, saved }: { manifest: StoreManifest; saved: SavedDesign }) {
   const design = manifest.design;
   const view = loadView(manifest.app.name);
-  // Both store tabs render even when only one platform is configured, so the
-  // platform is view state of its own: an unconfigured tab has no device key
-  // to derive it from.
-  const initialPlatform: Platform =
-    view.platform === "ios" || view.platform === "android"
-      ? view.platform
-      : (manifest.devices.find((d) => d.key === view.device)?.platform ??
-        manifest.devices[0]?.platform ??
-        "ios");
-  const [platform, setPlatform] = useState(initialPlatform);
+  // Every device-type tab renders even when only one is configured, so the
+  // type is view state of its own: an unconfigured tab has no device key to
+  // derive it from. Sessions saved before the iPad tab stored the platform
+  // instead; its "ios" is no type, so the saved device picks the tab then.
+  const initialType: DeviceType = isDeviceType(view.platform)
+    ? view.platform
+    : (manifest.devices.find((d) => d.key === view.device)?.type ??
+      manifest.devices[0]?.type ??
+      "iphone");
+  const [deviceType, setDeviceType] = useState(initialType);
   const [device, setDevice] = useState(() => {
-    const devices = manifest.devices.filter((d) => d.platform === initialPlatform);
+    const devices = manifest.devices.filter((d) => d.type === initialType);
     return devices.some((d) => d.key === view.device)
       ? (view.device as string)
       : (devices[0]?.key ?? manifest.devices[0]?.key ?? "");
   });
-  const selectPlatform = (p: Platform) => {
-    setPlatform(p);
-    const devices = manifest.devices.filter((d) => d.platform === p);
+  const selectDeviceType = (t: DeviceType) => {
+    setDeviceType(t);
+    const devices = manifest.devices.filter((d) => d.type === t);
     if (devices.length > 0 && !devices.some((d) => d.key === device)) setDevice(devices[0]!.key);
   };
   const [locale, setLocale] = useState(
@@ -184,8 +197,8 @@ function Loaded({ manifest, saved }: { manifest: StoreManifest; saved: SavedDesi
     }));
 
   useEffect(() => {
-    storeView(manifest.app.name, { platform, device, locale, dark, view: stripView });
-  }, [manifest.app.name, platform, device, locale, dark, stripView]);
+    storeView(manifest.app.name, { platform: deviceType, device, locale, dark, view: stripView });
+  }, [manifest.app.name, deviceType, device, locale, dark, stripView]);
 
   // Write the design to disk once it has sat still for a moment; a drag on
   // the gradient picker fires many changes a second. Skips the initial mount
@@ -240,8 +253,8 @@ function Loaded({ manifest, saved }: { manifest: StoreManifest; saved: SavedDesi
     return font && !stack.includes(font.family) ? `${stack}, "${font.family}"` : stack;
   }, fontFamily);
 
-  const platformDevices = manifest.devices.filter((d) => d.platform === platform);
-  const spec = platformDevices.find((d) => d.key === device) ?? platformDevices[0];
+  const typeDevices = manifest.devices.filter((d) => d.type === deviceType);
+  const spec = typeDevices.find((d) => d.key === device) ?? typeDevices[0];
   const captures = spec ? design.captures[spec.key] : undefined;
   const firstVariant = design.frameVariants.find((v) => v.device === device)?.key;
   const frameUrl = frame
@@ -252,11 +265,11 @@ function Loaded({ manifest, saved }: { manifest: StoreManifest; saved: SavedDesi
     <div className="flex h-full bg-stage p-3 text-foreground">
       <Sidebar
         manifest={manifest}
-        platform={platform}
+        deviceType={deviceType}
         device={device}
         locale={locale}
         dark={dark}
-        onPlatform={selectPlatform}
+        onDeviceType={selectDeviceType}
         onDevice={setDevice}
         onLocale={setLocale}
         onDark={setDark}
@@ -313,7 +326,7 @@ function Loaded({ manifest, saved }: { manifest: StoreManifest; saved: SavedDesi
               command="goldie capture && goldie manifest"
             />
           ) : (
-            <EmptyState {...ENABLE_PLATFORM[platform]} />
+            <EmptyState {...ENABLE_DEVICE_TYPE[deviceType]} />
           )}
         </main>
       </div>
@@ -396,6 +409,7 @@ function Toast({ message }: { message: string }) {
 }
 
 type SavedView = {
+  /** A DeviceType; older sessions stored the platform ("ios" | "android") here. */
   platform?: string;
   device?: string;
   locale?: string;
@@ -404,6 +418,10 @@ type SavedView = {
 };
 
 const storageKey = (appName: string) => `goldie-studio:${appName}`;
+
+function isDeviceType(value: string | undefined): value is DeviceType {
+  return DEVICE_TYPES.includes(value as DeviceType);
+}
 
 function loadView(appName: string): SavedView {
   try {

@@ -547,10 +547,7 @@ export function framePath(cfg: LoadedConfig, device: DeviceKey = "iphone-6.9"): 
     ? variantFramePath(variant)
     : resolve(cfg.root, (cfg.frame as { image: string }).image);
   if (!existsSync(file)) {
-    throw new Error(
-      `Frame image not found: ${file}` +
-        (variant?.startsWith("ipad-") ? " (run scripts/fetch-ipad-bezels.sh)" : ""),
-    );
+    throw new Error(`Frame image not found: ${file}`);
   }
   return file;
 }

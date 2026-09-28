@@ -11,6 +11,12 @@
 
 export type DeviceKey = "iphone-6.9" | "ipad-13" | "pixel-10-pro";
 
+/**
+ * The studio's device-type tabs. Finer than the platform: iPhones and iPads
+ * share the App Store pipeline but are shown apart.
+ */
+export type DeviceType = "iphone" | "ipad" | "android";
+
 export type DeviceSpec = {
   /**
    * Display label for the studio and logs. Output paths use the DeviceKey,
@@ -18,6 +24,7 @@ export type DeviceSpec = {
    */
   label: string;
   platform: "ios" | "android";
+  type: DeviceType;
   /**
    * `xcrun simctl` device type name; the toolkit picks the newest runtime that
    * has it. iOS only - android resolves a running emulator's adb serial instead.
@@ -51,6 +58,7 @@ export const DEVICES: Record<DeviceKey, DeviceSpec> = {
   "iphone-6.9": {
     label: "6.9",
     platform: "ios",
+    type: "iphone",
     simulatorName: "iPhone 17 Pro Max",
     native: { width: 1320, height: 2868 },
     screenshot: { width: 1320, height: 2868 },
@@ -59,6 +67,7 @@ export const DEVICES: Record<DeviceKey, DeviceSpec> = {
   "ipad-13": {
     label: "13",
     platform: "ios",
+    type: "ipad",
     simulatorName: "iPad Pro 13-inch (M4)",
     native: { width: 2064, height: 2752 },
     screenshot: { width: 2064, height: 2752 },
@@ -70,6 +79,7 @@ export const DEVICES: Record<DeviceKey, DeviceSpec> = {
   "pixel-10-pro": {
     label: "Play phone",
     platform: "android",
+    type: "android",
     avdDeviceNames: ["pixel_10_pro", "pixel_9_pro"],
     native: null,
     screenshot: { width: 1080, height: 1920 },
