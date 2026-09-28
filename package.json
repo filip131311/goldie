@@ -73,7 +73,7 @@
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.8",
-    "@swmansion/argent": "^0.22.0",
+    "@swmansion/argent": "^0.26.0",
     "jiti": "^2.6.0"
   },
   "devDependencies": {
