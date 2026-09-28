@@ -166,10 +166,15 @@ async function captureSegments(
       // Stop even on failure, or the next segment cannot start a recording.
       // `--out` only handles image results, so the mp4 is copied off the path
       // the tool materialized it to.
-      stopped = await argent.run<{ video: string; durationMs: number }>("screen-recording-stop", {
-        udid,
-      });
-      await releaseStatusBar();
+      // Release even if the stop throws: a live re-pin loop keeps the process
+      // from exiting, so a failed capture would hang instead of reporting.
+      try {
+        stopped = await argent.run<{ video: string; durationMs: number }>("screen-recording-stop", {
+          udid,
+        });
+      } finally {
+        await releaseStatusBar();
+      }
     }
     if (failure) throw failure;
 
@@ -193,8 +198,13 @@ const STATUS_BAR_REPIN_MS = 200;
  * without this every clip showed 9:37 and each holdSeconds tail showed the
  * host's real clock and battery. Re-pinning on a short interval overrides both
  * within one interval. Returns a function that stops the loop and waits for it.
+ *
+ * iOS only: the flow runner's override is a `simctl` one, and on android each
+ * re-pin is seven adb calls that would compete with `screenrecord` and redraw
+ * SystemUI mid-clip. The pin before the recording starts is enough there.
  */
 function holdStatusBar(deviceKey: DeviceKey, udid: string): () => Promise<void> {
+  if (DEVICES[deviceKey].platform === "android") return async () => {};
   let released = false;
   const loop = (async () => {
     while (!released) {
