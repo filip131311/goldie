@@ -285,15 +285,20 @@ export async function shutdown(key: DeviceKey, udid: string): Promise<void> {
  * front of it, so the write lands on the *host* account. See
  * pinKeyboardAndLocale.
  *
- * `read` is the plutil -extract format. Scalars have to be read as "raw":
- * a bare boolean or string is no valid JSON document, so extracting one as
- * "json" exits 1. Only containers can be read as "json".
+ * Every value is read back with `plutil -extract <path> raw`. "json" looks
+ * like the natural format for the AppleLanguages array, but plutil converts
+ * the whole file before extracting, and once iOS has booted it keeps data
+ * blobs in .GlobalPreferences that JSON cannot hold. The extract then exits 1,
+ * the device reads as unpinned forever, and every capture rebooted it. `raw`
+ * reads a scalar, so the array is checked through its first element
+ * (`readPath`), which is the language iOS resolves against.
  */
 type Pref = {
   domain: string;
   key: string;
   write: string[];
-  read: "raw" | "json";
+  /** The keypath read back, when it differs from `key`. */
+  readPath?: string;
   expect: string;
 };
 
@@ -314,7 +319,6 @@ function keyboardAndLocalePrefs(locale: string): Pref[] {
     domain,
     key,
     write: ["-bool", "false"],
-    read: "raw",
     expect: "false",
   });
   return [
@@ -327,15 +331,14 @@ function keyboardAndLocalePrefs(locale: string): Pref[] {
       domain: ".GlobalPreferences",
       key: "AppleLocale",
       write: ["-string", locale.replace("-", "_")],
-      read: "raw",
       expect: locale.replace("-", "_"),
     },
     {
       domain: ".GlobalPreferences",
       key: "AppleLanguages",
       write: ["-json", JSON.stringify([language])],
-      read: "json",
-      expect: JSON.stringify([language]),
+      readPath: "AppleLanguages.0",
+      expect: language,
     },
   ];
 }
@@ -390,9 +393,13 @@ async function keyboardAndLocalePinned(udid: string, locale: string): Promise<bo
   for (const pref of keyboardAndLocalePrefs(locale)) {
     const path = plistPath(udid, pref.domain);
     if (!existsSync(path)) return false;
-    const r = await exec("plutil", ["-extract", pref.key, pref.read, "-o", "-", path], {
-      quiet: true,
-    });
+    const r = await exec(
+      "plutil",
+      ["-extract", pref.readPath ?? pref.key, "raw", "-o", "-", path],
+      {
+        quiet: true,
+      },
+    );
     if (r.code !== 0) return false;
     if (r.stdout.trim() !== pref.expect) return false;
   }

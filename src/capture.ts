@@ -149,6 +149,7 @@ async function captureSegments(
       showTouches: false,
     });
 
+    const releaseStatusBar = holdStatusBar(deviceKey, udid);
     let failure: FlowFailure | null = null;
     let stopped: { video: string; durationMs: number } | null = null;
     try {
@@ -168,6 +169,7 @@ async function captureSegments(
       stopped = await argent.run<{ video: string; durationMs: number }>("screen-recording-stop", {
         udid,
       });
+      await releaseStatusBar();
     }
     if (failure) throw failure;
 
@@ -179,6 +181,32 @@ async function captureSegments(
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** How often a recording re-applies the pinned status bar. */
+const STATUS_BAR_REPIN_MS = 200;
+
+/**
+ * Keep goldie's status bar pinned for the length of a recording. argent's flow
+ * runner pins its own (9:37 instead of 9:41) when a flow starts and clears the
+ * override when it ends, with no option to skip either. A screenshot re-pins
+ * after its flow, but a preview segment is recorded while its flow runs, so
+ * without this every clip showed 9:37 and each holdSeconds tail showed the
+ * host's real clock and battery. Re-pinning on a short interval overrides both
+ * within one interval. Returns a function that stops the loop and waits for it.
+ */
+function holdStatusBar(deviceKey: DeviceKey, udid: string): () => Promise<void> {
+  let released = false;
+  const loop = (async () => {
+    while (!released) {
+      await device.pinStatusBar(deviceKey, udid).catch(() => {});
+      await sleep(STATUS_BAR_REPIN_MS);
+    }
+  })();
+  return async () => {
+    released = true;
+    await loop;
+  };
+}
 
 async function assertSize(file: string, width: number, height: number): Promise<void> {
   const got = await imageSize(file);
