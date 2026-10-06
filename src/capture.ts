@@ -72,8 +72,8 @@ export async function capture(cfg: LoadedConfig, deviceKey: DeviceKey): Promise<
     // screenshot taken in that window catches a half-applied status bar - two
     // otherwise identical runs then differ by the wifi glyph alone.
     // Pinned twice with a settle between: the runner restores the status bar it
-    // pinned for the run, and that restore can land after `argent flow run` has
-    // already exited. A single pin loses that race often enough that two
+    // pinned for the run, and that restore can land after the flow run has
+    // already returned. A single pin loses that race often enough that two
     // otherwise identical runs differ by the wifi and battery glyphs alone.
     await device.pinStatusBar(deviceKey, udid);
     await sleep(800);
@@ -164,8 +164,7 @@ async function captureSegments(
       if (segment.holdSeconds) await sleep(segment.holdSeconds * 1000);
     } finally {
       // Stop even on failure, or the next segment cannot start a recording.
-      // `--out` only handles image results, so the mp4 is copied off the path
-      // the tool materialized it to.
+      // The mp4 is copied off the local path the client materialized it to.
       // Release even if the stop throws: a live re-pin loop keeps the process
       // from exiting, so a failed capture would hang instead of reporting.
       try {
